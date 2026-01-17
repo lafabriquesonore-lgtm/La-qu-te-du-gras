@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎮 Le jeu où je reprends le contrôle</title>
+
+<style>
+:root{
+ --bg:#f5f5f7;--card:#fff;--text:#111;--muted:#666;
+ --accent:#007aff;--bonus:#ff9500;
+}
+@media (prefers-color-scheme: dark){
+ :root{
+  --bg:#0f0f12;--card:#1c1c1e;--text:#f2f2f7;
+  --muted:#9a9aa0;--accent:#0a84ff;--bonus:#ff9f0a;
+ }
+}
+body{
+ font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+ background:var(--bg);color:var(--text);
+ margin:0;padding:20px;
+}
+h1{text-align:center;margin-bottom:4px;}
+.score{font-size:46px;text-align:center;}
+.next{text-align:center;color:var(--muted);margin-bottom:16px;}
+
+.section{
+ background:var(--card);
+ padding:15px;border-radius:16px;
+ margin-bottom:16px;
+ box-shadow:0 6px 20px rgba(0,0,0,.05);
+}
+
+button{
+ width:100%;padding:14px;margin:6px 0;
+ font-size:16px;border:none;border-radius:14px;
+ background:var(--accent);color:white;
+}
+
+.bonusBtn{background:var(--bonus);}
+.done{background:#34c759!important}
+
+.float{
+ position:fixed;left:50%;top:40%;
+ transform:translateX(-50%);
+ font-size:26px;
+ animation:float 1s ease-out;
+ pointer-events:none;
+}
+@keyframes float{
+ from{opacity:1;transform:translate(-50%,0)}
+ to{opacity:0;transform:translate(-50%,-40px)}
+}
+
+.trophies{
+ background:var(--card);
+ padding:15px;border-radius:16px;
+}
+.trophy{opacity:.35}
+.trophy.unlocked{opacity:1}
+</style>
+</head>
+
+<body>
+
+<h1>🎮 Le jeu où je reprends le contrôle</h1>
+<div class="score" id="score">0 pts</div>
+<div class="next" id="next"></div>
+
+<div class="section">
+<h2>🎲 Défi du jour</h2>
+<div id="dailyText"></div>
+<button onclick="completeDaily()">Valider le défi</button>
+</div>
+
+<div class="section">
+<h2>🎁 Défi bonus du jour</h2>
+<div id="bonusText">Le bonus apparaîtra à 8h</div>
+<button id="bonusBtn" class="bonusBtn" style="display:none" onclick="completeBonus()">Valider le bonus</button>
+</div>
+
+<div class="section">
+<h2>🟦 Mouvement</h2>
+<button onclick="add(3)">Marche 30 min (+3)</button>
+<button onclick="add(10)">10 000 pas (+10)</button>
+<button onclick="add(20)">15 000 pas (+20)</button>
+<button onclick="add(30)">20 000 pas (+30)</button>
+</div>
+
+<div class="section">
+<h2>🟩 Alimentation</h2>
+<button onclick="add(5)">Pas de junk food (+5)</button>
+<button onclick="add(5)">Pas de sucrerie (+5)</button>
+<button onclick="add(10)">J’ai cuisiné moi-même (+10)</button>
+<button onclick="add(15)">Je ne me suis pas resservi 2 fois (+15)</button>
+</div>
+
+<div class="section">
+<h2>🟨 Rythme</h2>
+<button onclick="add(5)">Heures de repas respectées (+5)</button>
+<button onclick="add(5)">Dernier repas raisonnable (+5)</button>
+<button onclick="add(5)">Sommeil correct (+5)</button>
+<button onclick="add(10)">Journée structurée (+10)</button>
+</div>
+
+<div class="section">
+<h2>🟥 Mental</h2>
+<button onclick="add(5)">Pas mangé sous stress (+5)</button>
+<button onclick="add(10)">J’ai dit non à une tentation (+10)</button>
+<button onclick="add(10)">Arrêté à satiété (+10)</button>
+<button onclick="add(15)">Tenu malgré la flemme (+15)</button>
+</div>
+
+<div class="trophies">
+<h2>🏆 Trophées</h2>
+<div id="trophies"></div>
+</div>
+
+<script>
+// --------- DÉFIS DU JOUR ----------
+const dailyChallenges=[
+ {text:"Marcher au moins 20 minutes",pts:10},
+ {text:"Aucun sucre ajouté aujourd’hui",pts:10},
+ {text:"Repas du soir simple et léger",pts:10},
+ {text:"Manger sans écran",pts:10},
+ {text:"Tenir malgré la flemme",pts:15}
+];
+
+// --------- BONUS ----------
+const bonusChallenges=[
+ "Marcher sans musique","Boire un grand verre d’eau avant de manger",
+ "Ranger un seul endroit précis","Manger assis, vraiment",
+ "5 minutes d’étirements","Sortir prendre l’air 5 minutes",
+ "Dire non sans se justifier","Laisser volontairement une assiette incomplète",
+ "Manger plus lentement que d’habitude","Pause sans écran",
+ "Marcher après le repas","Se lever dès le réveil",
+ "Pas de grignotage","Respirer profondément 2 minutes",
+ "Choisir le plus simple","S’arrêter avant d’être plein",
+ "Faire un choix calme","Se coucher 15 minutes plus tôt",
+ "Ne rien ajouter pour le plaisir","Préparer quelque chose pour demain"
+];
+
+// --------- TROPHÉES JUSQU’À 10 000 ----------
+const trophies=[
+ {pts:100,   name:"Bon… j’ai commencé."},
+ {pts:300,   name:"Toujours pas mort."},
+ {pts:600,   name:"Ok, c’est sérieux."},
+ {pts:1000,  name:"Discipline > motivation."},
+ {pts:2000,  name:"Machine lancée."},
+ {pts:3000,  name:"Je fais ça sans négocier."},
+ {pts:4000,  name:"Le corps commence à suivre."},
+ {pts:5000,  name:"Nouvelle norme installée."},
+ {pts:6500,  name:"Avant / après visible."},
+ {pts:8000,  name:"Je me fais confiance."},
+ {pts:10000, name:"Je n’ai plus besoin du jeu. (mais je le garde)"}
+];
+
+// --------- ÉTAT ----------
+let score=Number(localStorage.getItem("score_v4"))||0;
+const today=new Date().toISOString().slice(0,10);
+
+// Défi du jour
+const daily=JSON.parse(localStorage.getItem("daily_"+today))
+ || dailyChallenges[Math.floor(Math.random()*dailyChallenges.length)];
+localStorage.setItem("daily_"+today,JSON.stringify(daily));
+document.getElementById("dailyText").textContent=daily.text+" (+"+daily.pts+" pts)";
+
+// Bonus à 8h
+const now=new Date();
+const eight=new Date(); eight.setHours(8,0,0,0);
+let bonus=localStorage.getItem("bonus_"+today);
+if(!bonus && now>=eight){
+ bonus=bonusChallenges[Math.floor(Math.random()*bonusChallenges.length)];
+ localStorage.setItem("bonus_"+today,bonus);
+}
+if(bonus){
+ document.getElementById("bonusText").textContent=bonus+" (+20 pts)";
+ document.getElementById("bonusBtn").style.display="block";
+}
+
+// --------- ACTIONS ----------
+function completeDaily(){ add(daily.pts); }
+function completeBonus(){ add(20); }
+
+function add(p){
+ score+=p;
+ localStorage.setItem("score_v4",score);
+ float("+"+p);
+ render();
+}
+
+function float(t){
+ const d=document.createElement("div");
+ d.className="float"; d.textContent=t;
+ document.body.appendChild(d);
+ setTimeout(()=>d.remove(),1000);
+}
+
+// --------- AFFICHAGE ----------
+function render(){
+ document.getElementById("score").textContent=score+" pts";
+
+ const next=trophies.find(t=>t.pts>score);
+ document.getElementById("next").textContent=
+  next?"Prochain trophée : "+next.pts+" pts":"Tous les trophées débloqués";
+
+ const list=document.getElementById("trophies");
+ list.innerHTML="";
+
+ trophies.forEach((t,i)=>{
+  const prev=trophies[i-1];
+  if(score>=t.pts || (!prev || score>=prev.pts)){
+   const d=document.createElement("div");
+   d.className="trophy"+(score>=t.pts?" unlocked":"");
+   d.textContent=(score>=t.pts?"🏆 ":"🔒 ")+t.name+" ("+t.pts+" pts)";
+   list.appendChild(d);
+  }
+ });
+}
+
+render();
+</script>
+
+</body>
+</html>
